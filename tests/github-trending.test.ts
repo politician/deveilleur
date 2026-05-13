@@ -100,4 +100,39 @@ describe('collectGitHubTrending', () => {
       ghMonthlyChange: 4300
     });
   });
+
+  it('starts fetching each period before awaiting responses', async () => {
+    const requestedPeriods: GitHubPeriod[] = [];
+    const resolvers = new Map<GitHubPeriod, (value: string) => void>();
+    const htmlByPeriod = {
+      daily: html.replace('842 stars today', '842 stars today'),
+      weekly: html.replace('842 stars today', '1900 stars this week'),
+      monthly: html.replace('842 stars today', '4300 stars this month')
+    } satisfies Record<GitHubPeriod, string>;
+    const fetchText = (period: GitHubPeriod) => {
+      requestedPeriods.push(period);
+
+      return new Promise<string>((resolve) => {
+        resolvers.set(period, resolve);
+      });
+    };
+
+    const pendingRepos = collectGitHubTrending(fetchText);
+    await Promise.resolve();
+
+    expect(requestedPeriods).toEqual(['daily', 'weekly', 'monthly']);
+
+    for (const period of requestedPeriods) {
+      resolvers.get(period)?.(htmlByPeriod[period]);
+    }
+
+    const repos = await pendingRepos;
+
+    expect(repos[0]).toMatchObject({
+      sourceKey: 'zed-industries/zed',
+      ghTodayChange: 842,
+      ghWeeklyChange: 1900,
+      ghMonthlyChange: 4300
+    });
+  });
 });

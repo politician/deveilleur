@@ -72,10 +72,13 @@ export async function collectGitHubTrending(
 ): Promise<GitHubTrendingItem[]> {
   const periods: GitHubPeriod[] = ['daily', 'weekly', 'monthly'];
   const merged = new Map<string, GitHubTrendingItem>();
+  const itemsByPeriod = await Promise.all(
+    periods.map(async (period) => {
+      return parseGitHubTrendingPage(await fetchText(period), period);
+    })
+  );
 
-  for (const period of periods) {
-    const items = parseGitHubTrendingPage(await fetchText(period), period);
-
+  for (const items of itemsByPeriod) {
     for (const item of items) {
       const existing = merged.get(item.sourceKey);
       merged.set(item.sourceKey, {
