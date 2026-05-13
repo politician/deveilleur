@@ -1,0 +1,7 @@
+{
+  "name": "build-only-tool",
+  "desc": "Fixture formula depending on libuv at build time.",
+  "homepage": "https://example.com/build-only-tool",
+  "dependencies": [],
+  "build_dependencies": ["libuv"]
+}

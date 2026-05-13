@@ -7,6 +7,7 @@ import {
 import formulaAnalytics from './fixtures/homebrew-formula-analytics.json' with { type: 'json' };
 import caskAnalytics from './fixtures/homebrew-cask-analytics.json' with { type: 'json' };
 import formulaBat from './fixtures/formula-bat.json' with { type: 'json' };
+import formulaBuildDependency from './fixtures/formula-build-dependency.json' with { type: 'json' };
 import formulaLibuv from './fixtures/formula-libuv.json' with { type: 'json' };
 import caskRaycast from './fixtures/cask-raycast.json' with { type: 'json' };
 
@@ -14,6 +15,12 @@ describe('resolveFormulaDependency', () => {
   it('marks a formula as a dependency when another formula depends on it', () => {
     expect(resolveFormulaDependency('libuv', [formulaBat, formulaLibuv])).toBe(true);
     expect(resolveFormulaDependency('bat', [formulaBat, formulaLibuv])).toBe(false);
+  });
+
+  it('marks a formula as a dependency when another formula lists it as a build dependency', () => {
+    expect(
+      resolveFormulaDependency('libuv', [formulaBuildDependency, formulaLibuv])
+    ).toBe(true);
   });
 });
 
