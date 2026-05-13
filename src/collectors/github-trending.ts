@@ -83,6 +83,7 @@ export async function collectGitHubTrending(
       const existing = merged.get(item.sourceKey);
       merged.set(item.sourceKey, {
         ...item,
+        totalStars: existing?.totalStars ?? item.totalStars,
         ghTodayChange: item.ghTodayChange ?? existing?.ghTodayChange ?? null,
         ghWeeklyChange: item.ghWeeklyChange ?? existing?.ghWeeklyChange ?? null,
         ghMonthlyChange: item.ghMonthlyChange ?? existing?.ghMonthlyChange ?? null

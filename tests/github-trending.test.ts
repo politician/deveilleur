@@ -101,6 +101,25 @@ describe('collectGitHubTrending', () => {
     });
   });
 
+  it('preserves the first totalStars value when later periods disagree', async () => {
+    const fetchText = async (period: GitHubPeriod) => {
+      const totalStars = period === 'daily' ? '52,731' : period === 'weekly' ? '99,999' : '12,345';
+      const trendText = period === 'daily' ? '842 stars today' : period === 'weekly' ? '1900 stars this week' : '4300 stars this month';
+
+      return html.replace('52,731', totalStars).replace('842 stars today', trendText);
+    };
+
+    const repos = await collectGitHubTrending(fetchText);
+
+    expect(repos[0]).toMatchObject({
+      sourceKey: 'zed-industries/zed',
+      totalStars: 52731,
+      ghTodayChange: 842,
+      ghWeeklyChange: 1900,
+      ghMonthlyChange: 4300
+    });
+  });
+
   it('starts fetching each period before awaiting responses', async () => {
     const requestedPeriods: GitHubPeriod[] = [];
     const resolvers = new Map<GitHubPeriod, (value: string) => void>();
