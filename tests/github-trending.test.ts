@@ -1,7 +1,8 @@
+/// <reference types="vite/client" />
+
 import { describe, expect, it } from 'vitest';
 
 import { collectGitHubTrending, parseGitHubTrendingPage, type GitHubPeriod } from '../src/collectors/github-trending.js';
-// @ts-expect-error Vite resolves ?raw imports at runtime.
 import html from './fixtures/github-trending.html?raw';
 
 describe('parseGitHubTrendingPage', () => {
@@ -86,15 +87,17 @@ describe('parseGitHubTrendingPage', () => {
   });
 });
 
-it('merges daily, weekly, and monthly sightings by repo', async () => {
-  const fetchText = async (period: GitHubPeriod) => html.replace('842 stars today', period === 'daily' ? '842 stars today' : period === 'weekly' ? '1900 stars this week' : '4300 stars this month');
+describe('collectGitHubTrending', () => {
+  it('merges daily, weekly, and monthly sightings by repo', async () => {
+    const fetchText = async (period: GitHubPeriod) => html.replace('842 stars today', period === 'daily' ? '842 stars today' : period === 'weekly' ? '1900 stars this week' : '4300 stars this month');
 
-  const repos = await collectGitHubTrending(fetchText);
+    const repos = await collectGitHubTrending(fetchText);
 
-  expect(repos[0]).toMatchObject({
-    sourceKey: 'zed-industries/zed',
-    ghTodayChange: 842,
-    ghWeeklyChange: 1900,
-    ghMonthlyChange: 4300
+    expect(repos[0]).toMatchObject({
+      sourceKey: 'zed-industries/zed',
+      ghTodayChange: 842,
+      ghWeeklyChange: 1900,
+      ghMonthlyChange: 4300
+    });
   });
 });
