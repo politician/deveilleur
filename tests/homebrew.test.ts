@@ -25,8 +25,8 @@ describe('resolveFormulaDependency', () => {
 });
 
 describe('collectHomebrewAnalytics', () => {
-  it('returns formula and cask items with opportunistic metadata', async () => {
-    const items = await collectHomebrewAnalytics({
+  it('returns formula and cask items with opportunistic metadata', () => {
+    const items = collectHomebrewAnalytics({
       formulaAnalytics,
       caskAnalytics,
       formulaDetailsByName: new Map([
@@ -36,6 +36,7 @@ describe('collectHomebrewAnalytics', () => {
       caskDetailsByName: new Map([['raycast', caskRaycast]])
     });
 
+    expect(items).not.toBeInstanceOf(Promise);
     expect(items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -54,6 +55,7 @@ describe('collectHomebrewAnalytics', () => {
         expect.objectContaining({
           source: 'HBC',
           sourceKey: 'raycast',
+          dependency: false,
           metricValue: 15500,
           url: 'https://www.raycast.com/'
         })

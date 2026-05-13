@@ -45,12 +45,12 @@ export function resolveFormulaDependency(
   });
 }
 
-export async function collectHomebrewAnalytics(input: {
+export function collectHomebrewAnalytics(input: {
   formulaAnalytics: HomebrewFormulaAnalytics;
   caskAnalytics: HomebrewCaskAnalytics;
   formulaDetailsByName: Map<string, HomebrewFormulaDetail>;
   caskDetailsByName: Map<string, HomebrewCaskDetail>;
-}): Promise<HomebrewAnalyticsItem[]> {
+}): HomebrewAnalyticsItem[] {
   const formulaDetails = [...input.formulaDetailsByName.values()];
 
   const formulas = input.formulaAnalytics.formulae.map((item) => {
