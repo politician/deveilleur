@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3';
 import { sql, type Insertable, type Selectable } from 'kysely';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
@@ -79,13 +78,13 @@ describe('database migration', () => {
   });
 
   it('enables foreign keys when a connection is created', async () => {
-    const pragmaSpy = vi.spyOn(Database.prototype, 'pragma');
-
     const db = createDatabase(':memory:');
+    const foreignKeys = await sql<{ foreign_keys: number }>`
+      PRAGMA foreign_keys
+    `.execute(db);
 
-    expect(pragmaSpy).toHaveBeenCalledWith('foreign_keys = ON');
+    expect(foreignKeys.rows[0]?.foreign_keys).toBe(1);
 
-    pragmaSpy.mockRestore();
     await db.destroy();
   });
 });
