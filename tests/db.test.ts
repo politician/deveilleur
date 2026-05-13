@@ -6,6 +6,17 @@ import { createDatabase } from '../src/db/database.js';
 import { migrate } from '../src/db/migrate.js';
 
 describe('database migration', () => {
+  it('wraps migration statements in a transaction', async () => {
+    const db = createDatabase(':memory:');
+    const transactionSpy = vi.spyOn(db, 'transaction');
+
+    await migrate(db);
+
+    expect(transactionSpy).toHaveBeenCalledTimes(1);
+
+    await db.destroy();
+  });
+
   it('creates the expected tables', async () => {
     const db = createDatabase(':memory:');
     await migrate(db);
