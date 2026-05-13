@@ -62,4 +62,30 @@ describe('collectHomebrewAnalytics', () => {
       ])
     );
   });
+
+  it('returns null metadata when detail entries are missing', () => {
+    const items = collectHomebrewAnalytics({
+      formulaAnalytics,
+      caskAnalytics,
+      formulaDetailsByName: new Map(),
+      caskDetailsByName: new Map()
+    });
+
+    expect(items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'HB',
+          sourceKey: 'bat',
+          description: null,
+          url: null
+        }),
+        expect.objectContaining({
+          source: 'HBC',
+          sourceKey: 'raycast',
+          description: null,
+          url: null
+        })
+      ])
+    );
+  });
 });
