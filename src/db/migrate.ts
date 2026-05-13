@@ -23,7 +23,7 @@ export async function migrate(db: Kysely<DatabaseSchema>): Promise<void> {
     await sql`
       create table if not exists daily_metrics (
         id integer primary key autoincrement,
-        entry_id integer not null references entries(id),
+        entry_id integer not null references entries(id) on delete cascade,
         metric_date text not null,
         metric_value integer not null,
         live_change real,

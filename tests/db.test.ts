@@ -34,6 +34,36 @@ describe('database migration', () => {
     await db.destroy();
   });
 
+  it('deletes daily metrics when the parent entry is deleted', async () => {
+    const db = createDatabase(':memory:');
+    await migrate(db);
+
+    await sql`
+      insert into entries (id, source, source_key, name, first_seen_at, updated_at)
+      values (1, 'GH', 'entry-1', 'Entry 1', '2025-01-01T00:00:00Z', '2025-01-01T00:00:00Z')
+    `.execute(db);
+
+    await sql`
+      insert into daily_metrics (entry_id, metric_date, metric_value, created_at)
+      values (1, '2025-01-01', 42, '2025-01-01T00:00:00Z')
+    `.execute(db);
+
+    await sql`
+      delete from entries
+      where id = 1
+    `.execute(db);
+
+    const metrics = await sql<{ count: number }>`
+      select count(*) as count
+      from daily_metrics
+      where entry_id = 1
+    `.execute(db);
+
+    expect(metrics.rows[0]?.count).toBe(0);
+
+    await db.destroy();
+  });
+
   it('enables foreign keys when a connection is created', async () => {
     const pragmaSpy = vi.spyOn(Database.prototype, 'pragma');
 
