@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 import { describe, expect, it } from 'vitest';
 
 import { collectGitHubTrending, parseGitHubTrendingPage, type GitHubPeriod } from '../src/collectors/github-trending.js';
