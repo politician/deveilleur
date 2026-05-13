@@ -1,0 +1,6 @@
+{
+  "category": "cask-install",
+  "casks": [
+    { "cask": "raycast", "count": 15500 }
+  ]
+}
