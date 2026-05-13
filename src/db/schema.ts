@@ -10,7 +10,7 @@ export interface EntriesTable {
   description: string | null;
   language: string | null;
   url: string | null;
-  dependency: number;
+  dependency: Generated<number>;
   first_seen_at: string;
   updated_at: string;
 }
