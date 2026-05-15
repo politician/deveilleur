@@ -10,13 +10,14 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   }
 
   if (argv[0] === 'run-daily') {
-    await runDaily({
+    const result = await runDaily({
       runDate: isoDate(),
       databasePath: SQLITE_PATH,
       reportsDir: 'reports',
       githubItems: [],
       homebrewItems: []
     });
+    console.log(`Report written to ${result.outputPath}`);
     return 0;
   }
 

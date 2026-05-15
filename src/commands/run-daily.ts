@@ -7,34 +7,39 @@ import { upsertEntry } from '../services/catalog.js';
 import { recordDailyMetric } from '../services/metrics.js';
 import { renderDailyReport } from '../services/reporting.js';
 
+export type RunDailyGithubItem = {
+  source: 'GH';
+  sourceKey: string;
+  name: string;
+  description: string | null;
+  language: string | null;
+  url: string;
+  totalStars: number;
+  ghTodayChange: number | null;
+  ghWeeklyChange: number | null;
+  ghMonthlyChange: number | null;
+};
+
+export type RunDailyHomebrewItem = {
+  source: 'HB' | 'HBC';
+  sourceKey: string;
+  name: string;
+  description: string | null;
+  language: null;
+  url: string | null;
+  dependency: boolean;
+  metricValue: number;
+};
+
 export async function runDaily(input: {
   runDate: string;
   databasePath: string;
   reportsDir: string;
-  githubItems: Array<{
-    source: 'GH';
-    sourceKey: string;
-    name: string;
-    description: string | null;
-    language: string | null;
-    url: string;
-    totalStars: number;
-    ghTodayChange: number | null;
-    ghWeeklyChange: number | null;
-    ghMonthlyChange: number | null;
-  }>;
-  homebrewItems: Array<{
-    source: 'HB' | 'HBC';
-    sourceKey: string;
-    name: string;
-    description: string | null;
-    language: null;
-    url: string | null;
-    dependency: boolean;
-    metricValue: number;
-  }>;
+  githubItems: RunDailyGithubItem[];
+  homebrewItems: RunDailyHomebrewItem[];
 }) {
   const db = createDatabase(input.databasePath);
+  const createdAt = new Date().toISOString();
 
   try {
     await migrate(db);
@@ -82,12 +87,11 @@ export async function runDaily(input: {
       .values({
         run_date: input.runDate,
         output_path: outputPath,
-        created_at: input.runDate
+        created_at: createdAt
       })
       .onConflict((oc) =>
         oc.column('run_date').doUpdateSet({
-          output_path: outputPath,
-          created_at: input.runDate
+          output_path: outputPath
         })
       )
       .execute();

@@ -1,7 +1,11 @@
 import fs from 'node:fs/promises';
+import { sql } from 'kysely';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
+import { createDatabase } from '../src/db/database.js';
+import { migrate } from '../src/db/migrate.js';
+import type { RunDailyGithubItem, RunDailyHomebrewItem } from '../src/commands/run-daily.js';
 import { runDaily } from '../src/commands/run-daily.js';
 
 afterEach(() => {
@@ -10,6 +14,11 @@ afterEach(() => {
 });
 
 describe('runDaily', () => {
+  it('exports named item input types', () => {
+    expectTypeOf<RunDailyGithubItem['source']>().toEqualTypeOf<'GH'>();
+    expectTypeOf<RunDailyHomebrewItem['source']>().toEqualTypeOf<'HB' | 'HBC'>();
+  });
+
   it('writes a dated report file and records it in the database', async () => {
     const outputPath = 'reports/2026-05-13.md';
 
@@ -50,6 +59,50 @@ describe('runDaily', () => {
       expect(result.markdown).toContain('# Trending tools');
       expect(result.reportRecorded).toBe(true);
     } finally {
+      await fs.rm(outputPath, { force: true });
+    }
+  });
+
+  it('stores an ISO created_at timestamp and keeps it immutable on conflict', async () => {
+    const databasePath = 'data/run-daily-created-at.sqlite';
+    const outputPath = 'reports/2026-05-13.md';
+
+    vi.useFakeTimers();
+
+    try {
+      vi.setSystemTime(new Date('2026-05-13T08:00:00.000Z'));
+      await runDaily({
+        runDate: '2026-05-13',
+        databasePath,
+        reportsDir: 'reports',
+        githubItems: [],
+        homebrewItems: []
+      });
+
+      vi.setSystemTime(new Date('2026-05-13T09:30:00.000Z'));
+      await runDaily({
+        runDate: '2026-05-13',
+        databasePath,
+        reportsDir: 'reports',
+        githubItems: [],
+        homebrewItems: []
+      });
+
+      const db = createDatabase(databasePath);
+      await migrate(db);
+
+      const row = await sql<{ created_at: string }>`
+        select created_at
+        from run_reports
+        where run_date = '2026-05-13'
+      `.execute(db);
+
+      await db.destroy();
+
+      expect(row.rows[0]?.created_at).toBe('2026-05-13T08:00:00.000Z');
+    } finally {
+      vi.useRealTimers();
+      await fs.rm(databasePath, { force: true });
       await fs.rm(outputPath, { force: true });
     }
   });
