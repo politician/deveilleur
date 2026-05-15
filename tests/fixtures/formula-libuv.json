@@ -1,0 +1,7 @@
+{
+  "name": "libuv",
+  "desc": "Multi-platform support library with a focus on asynchronous I/O",
+  "homepage": "https://libuv.org/",
+  "dependencies": [],
+  "build_dependencies": []
+}
