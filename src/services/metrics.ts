@@ -1,6 +1,6 @@
-import type { Kysely } from 'kysely';
+import type { Kysely, Selectable } from 'kysely';
 
-import type { DatabaseSchema } from '../db/schema.js';
+import type { DailyMetricsTable, DatabaseSchema } from '../db/schema.js';
 
 function pctChange(previous: number, current: number): number | null {
   if (previous === 0) {
@@ -35,7 +35,7 @@ async function buildMetricRow(
     .selectFrom('daily_metrics')
     .select(['metric_value'])
     .where('entry_id', '=', input.entryId)
-    .where('metric_date', '<=', input.metricDate)
+    .where('metric_date', '<', input.metricDate)
     .orderBy('metric_date', 'asc')
     .executeTakeFirst();
 
@@ -62,7 +62,7 @@ export async function recordDailyMetric(
     ghWeeklyChange: number | null;
     ghMonthlyChange: number | null;
   }
-) {
+): Promise<Selectable<DailyMetricsTable>> {
   const entry = await db
     .selectFrom('entries')
     .select(['source'])

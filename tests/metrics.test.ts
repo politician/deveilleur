@@ -226,6 +226,63 @@ describe('recordDailyMetric', () => {
     await db.destroy();
   });
 
+  it('keeps the first chronological row baseline-free when re-upserting it', async () => {
+    const db = createDatabase(':memory:');
+    await migrate(db);
+
+    const entryId = await upsertEntry(db, {
+      source: 'HB',
+      sourceKey: 'bat',
+      name: 'bat',
+      description: 'Clone of cat(1) with wings.',
+      language: null,
+      url: 'https://github.com/sharkdp/bat',
+      dependency: false,
+      seenAt: '2026-05-13'
+    });
+
+    await recordDailyMetric(db, {
+      entryId,
+      metricDate: '2026-05-13',
+      metricValue: 100,
+      ghTodayChange: null,
+      ghWeeklyChange: null,
+      ghMonthlyChange: null
+    });
+
+    await recordDailyMetric(db, {
+      entryId,
+      metricDate: '2026-05-15',
+      metricValue: 200,
+      ghTodayChange: null,
+      ghWeeklyChange: null,
+      ghMonthlyChange: null
+    });
+
+    const firstRow = await recordDailyMetric(db, {
+      entryId,
+      metricDate: '2026-05-13',
+      metricValue: 120,
+      ghTodayChange: null,
+      ghWeeklyChange: null,
+      ghMonthlyChange: null
+    });
+
+    const laterRow = await db
+      .selectFrom('daily_metrics')
+      .selectAll()
+      .where('entry_id', '=', entryId)
+      .where('metric_date', '=', '2026-05-15')
+      .executeTakeFirstOrThrow();
+
+    expect(firstRow.live_change).toBeNull();
+    expect(firstRow.alltime_change).toBeNull();
+    expect(laterRow.live_change).toBe(66.67);
+    expect(laterRow.alltime_change).toBe(66.67);
+
+    await db.destroy();
+  });
+
   it('leaves live_change and alltime_change null when the baseline metric is zero', async () => {
     const db = createDatabase(':memory:');
     await migrate(db);
