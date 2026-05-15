@@ -74,6 +74,7 @@ describe('renderDailyReport', () => {
       homebrewLosers
     });
 
+    expect(markdown).toContain('## Homebrew (30 days)');
     expect(markdown).toContain('[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐');
     expect(markdown).toContain('>_ [**bat**](https://github.com/sharkdp/bat) - 120034 📥');
     expect(markdown).toContain('🖥️ [**raycast**](https://www.raycast.com/) - 15500 📥');
@@ -172,5 +173,28 @@ describe('renderDailyReport', () => {
 
     expect(markdown).toContain('**-35%** 📉 🖥️ [**raycast**](https://www.raycast.com/) - 15500 📥');
     expect(markdown).not.toContain('**35%** 📉');
+  });
+
+  it('renders rising entries with a single explicit space after the formatted change', () => {
+    const markdown = renderDailyReport({
+      githubNewcomers: [],
+      githubRisers: [],
+      homebrewNewcomers: [],
+      homebrewRisers: [
+        {
+          name: 'bat',
+          url: 'https://github.com/sharkdp/bat',
+          metricValue: 120034,
+          description: 'Clone of cat(1) with wings.',
+          source: 'HB',
+          liveChange: 12,
+          alltimeChange: null
+        }
+      ],
+      homebrewLosers: []
+    });
+
+    expect(markdown).toContain('**+12%** 📈 >_ [**bat**](https://github.com/sharkdp/bat) - 120034 📥');
+    expect(markdown).not.toContain('**+12%** 📈  >_');
   });
 });

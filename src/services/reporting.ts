@@ -47,7 +47,7 @@ function formatChange(change: number | null | undefined, direction: 'up' | 'down
   const icon = direction === 'up' ? '📈' : '📉';
   const normalizedChange = direction === 'up' ? Math.abs(change) : -Math.abs(change);
   const sign = normalizedChange > 0 ? '+' : '';
-  return `**${sign}${normalizedChange}%** ${icon} `;
+  return `**${sign}${normalizedChange}%** ${icon}`;
 }
 
 export function renderDailyReport(input: {
@@ -68,13 +68,14 @@ export function renderDailyReport(input: {
 
   lines.push('### Risers', '');
   for (const row of input.githubRisers) {
-    lines.push(`${formatChange(row.liveChange, 'up')}${formatName(row.name, row.url)} - ${row.metricValue} ⭐`);
+    const formattedChange = formatChange(row.liveChange, 'up');
+    lines.push(`${formattedChange}${formattedChange ? ' ' : ''}${formatName(row.name, row.url)} - ${row.metricValue} ⭐`);
     lines.push(`- *${row.language ?? 'Unknown'}*`);
     lines.push(row.description ?? '');
     lines.push('');
   }
 
-  lines.push('## HomeBrew (30 days)', '', '### Newcomers', '');
+  lines.push('## Homebrew (30 days)', '', '### Newcomers', '');
   for (const row of input.homebrewNewcomers) {
     lines.push(`${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
     lines.push(row.description ?? '');
@@ -84,7 +85,8 @@ export function renderDailyReport(input: {
 
   lines.push('### Risers', '');
   for (const row of input.homebrewRisers) {
-    lines.push(`${formatChange(row.liveChange, 'up')}${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
+    const formattedChange = formatChange(row.liveChange, 'up');
+    lines.push(`${formattedChange}${formattedChange ? ' ' : ''}${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
     lines.push(row.description ?? '');
     lines.push(`\`${brewCommand('install', row.source, row.name)}\``);
     lines.push('');
@@ -92,7 +94,8 @@ export function renderDailyReport(input: {
 
   lines.push('### Losers', '');
   for (const row of input.homebrewLosers) {
-    lines.push(`${formatChange(row.alltimeChange, 'down')}${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
+    const formattedChange = formatChange(row.alltimeChange, 'down');
+    lines.push(`${formattedChange}${formattedChange ? ' ' : ''}${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
     lines.push(row.description ?? '');
     lines.push(`\`${brewCommand('uninstall', row.source, row.name)}\``);
     lines.push('');
