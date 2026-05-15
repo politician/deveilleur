@@ -1,4 +1,4 @@
-type HomebrewSource = 'HB' | 'HBC';
+export type HomebrewSource = 'HB' | 'HBC';
 
 export type ReportRow = {
   name: string;
@@ -14,16 +14,16 @@ export type HomebrewReportRow = ReportRow & {
   source: HomebrewSource;
 };
 
-type RisingReportRow = ReportRow & {
-  liveChange: number;
+export type GitHubRisingReportRow = ReportRow & {
+  liveChange: number | null;
 };
 
-type HomebrewRisingReportRow = HomebrewReportRow & {
-  liveChange: number;
+export type HomebrewRisingReportRow = HomebrewReportRow & {
+  liveChange: number | null;
 };
 
-type HomebrewLosingReportRow = HomebrewReportRow & {
-  alltimeChange: number;
+export type HomebrewLosingReportRow = HomebrewReportRow & {
+  alltimeChange: number | null;
 };
 
 export function brewPrefix(source: HomebrewSource): string {
@@ -51,7 +51,7 @@ function formatChange(change: number | null | undefined, direction: 'up' | 'down
 
 export function renderDailyReport(input: {
   githubNewcomers: ReportRow[];
-  githubRisers: RisingReportRow[];
+  githubRisers: GitHubRisingReportRow[];
   homebrewNewcomers: HomebrewReportRow[];
   homebrewRisers: HomebrewRisingReportRow[];
   homebrewLosers: HomebrewLosingReportRow[];

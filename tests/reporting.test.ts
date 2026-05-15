@@ -4,9 +4,15 @@ import {
   brewCommand,
   brewPrefix,
   renderDailyReport,
+  type GitHubRisingReportRow,
+  type HomebrewLosingReportRow,
   type HomebrewReportRow,
+  type HomebrewRisingReportRow,
+  type HomebrewSource,
   type ReportRow
 } from '../src/services/reporting.js';
+
+const homebrewSource: HomebrewSource = 'HB';
 
 // @ts-expect-error Homebrew rows must declare their source.
 const invalidHomebrewRow: HomebrewReportRow = {
@@ -17,6 +23,7 @@ const invalidHomebrewRow: HomebrewReportRow = {
 };
 
 void invalidHomebrewRow;
+void homebrewSource;
 
 describe('renderDailyReport', () => {
   it('exports the homebrew helpers as part of the reporting API', () => {
@@ -47,7 +54,7 @@ describe('renderDailyReport', () => {
         alltimeChange: null
       }
     ];
-    const homebrewLosers: Parameters<typeof renderDailyReport>[0]['homebrewLosers'] = [
+    const homebrewLosers: HomebrewLosingReportRow[] = [
       {
         name: 'raycast',
         url: 'https://www.raycast.com/',
@@ -97,41 +104,45 @@ describe('renderDailyReport', () => {
   });
 
   it('omits missing change values instead of rendering null%', () => {
+    const githubRisers: GitHubRisingReportRow[] = [
+      {
+        name: 'zed',
+        url: 'https://github.com/zed-industries/zed',
+        metricValue: 52731,
+        language: 'Rust',
+        description: 'Code editor for high-agency developers',
+        liveChange: null
+      }
+    ];
+    const homebrewRisers: HomebrewRisingReportRow[] = [
+      {
+        name: 'bat',
+        url: 'https://github.com/sharkdp/bat',
+        metricValue: 120034,
+        description: 'Clone of cat(1) with wings.',
+        source: 'HB',
+        liveChange: null,
+        alltimeChange: null
+      }
+    ];
+    const homebrewLosers: HomebrewLosingReportRow[] = [
+      {
+        name: 'ghostty',
+        url: null,
+        metricValue: 4200,
+        description: 'Fast, feature-rich terminal emulator',
+        source: 'HBC',
+        liveChange: null,
+        alltimeChange: null
+      }
+    ];
+
     const markdown = renderDailyReport({
       githubNewcomers: [],
-      githubRisers: [
-        {
-          name: 'zed',
-          url: 'https://github.com/zed-industries/zed',
-          metricValue: 52731,
-          language: 'Rust',
-          description: 'Code editor for high-agency developers',
-          liveChange: null
-        } as unknown as Parameters<typeof renderDailyReport>[0]['githubRisers'][number]
-      ],
+      githubRisers,
       homebrewNewcomers: [],
-      homebrewRisers: [
-        {
-          name: 'bat',
-          url: 'https://github.com/sharkdp/bat',
-          metricValue: 120034,
-          description: 'Clone of cat(1) with wings.',
-          source: 'HB',
-          liveChange: null,
-          alltimeChange: null
-        } as unknown as Parameters<typeof renderDailyReport>[0]['homebrewRisers'][number]
-      ],
-      homebrewLosers: [
-        {
-          name: 'ghostty',
-          url: null,
-          metricValue: 4200,
-          description: 'Fast, feature-rich terminal emulator',
-          source: 'HBC',
-          liveChange: null,
-          alltimeChange: null
-        } as unknown as Parameters<typeof renderDailyReport>[0]['homebrewLosers'][number]
-      ]
+      homebrewRisers,
+      homebrewLosers
     });
 
     expect(markdown).toContain('[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐');
