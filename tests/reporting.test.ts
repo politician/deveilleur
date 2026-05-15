@@ -22,7 +22,28 @@ const invalidHomebrewRow: HomebrewReportRow = {
   description: null
 };
 
+const invalidBaseReportRow: ReportRow = {
+  name: 'unexpected-change',
+  url: null,
+  metricValue: 1,
+  description: null,
+  // @ts-expect-error Base report rows must not expose live change.
+  liveChange: 5
+};
+
+const invalidHomebrewNewcomerRow: HomebrewReportRow = {
+  name: 'unexpected-alltime-change',
+  url: null,
+  metricValue: 1,
+  description: null,
+  source: 'HB',
+  // @ts-expect-error Homebrew newcomer rows must not expose all-time change.
+  alltimeChange: -5
+};
+
 void invalidHomebrewRow;
+void invalidBaseReportRow;
+void invalidHomebrewNewcomerRow;
 void homebrewSource;
 
 describe('renderDailyReport', () => {
@@ -49,9 +70,7 @@ describe('renderDailyReport', () => {
         url: 'https://github.com/sharkdp/bat',
         metricValue: 120034,
         description: 'Clone of cat(1) with wings.',
-        source: 'HB',
-        liveChange: null,
-        alltimeChange: null
+        source: 'HB'
       }
     ];
     const homebrewLosers: HomebrewLosingReportRow[] = [
@@ -61,7 +80,6 @@ describe('renderDailyReport', () => {
         metricValue: 15500,
         description: 'Control your tools with a few keystrokes',
         source: 'HBC',
-        liveChange: -10,
         alltimeChange: -35
       }
     ];
@@ -91,9 +109,7 @@ describe('renderDailyReport', () => {
           url: null,
           metricValue: 4200,
           description: 'Fast, feature-rich terminal emulator',
-          source: 'HBC',
-          liveChange: null,
-          alltimeChange: null
+          source: 'HBC'
         }
       ],
       homebrewRisers: [],
@@ -122,8 +138,7 @@ describe('renderDailyReport', () => {
         metricValue: 120034,
         description: 'Clone of cat(1) with wings.',
         source: 'HB',
-        liveChange: null,
-        alltimeChange: null
+        liveChange: null
       }
     ];
     const homebrewLosers: HomebrewLosingReportRow[] = [
@@ -133,7 +148,6 @@ describe('renderDailyReport', () => {
         metricValue: 4200,
         description: 'Fast, feature-rich terminal emulator',
         source: 'HBC',
-        liveChange: null,
         alltimeChange: null
       }
     ];
@@ -165,7 +179,6 @@ describe('renderDailyReport', () => {
           metricValue: 15500,
           description: 'Control your tools with a few keystrokes',
           source: 'HBC',
-          liveChange: -10,
           alltimeChange: 35
         }
       ]
@@ -187,8 +200,7 @@ describe('renderDailyReport', () => {
           metricValue: 120034,
           description: 'Clone of cat(1) with wings.',
           source: 'HB',
-          liveChange: 12,
-          alltimeChange: null
+          liveChange: 12
         }
       ],
       homebrewLosers: []

@@ -6,8 +6,6 @@ export type ReportRow = {
   metricValue: number;
   language?: string | null;
   description: string | null;
-  liveChange?: number | null;
-  alltimeChange?: number | null;
 };
 
 export type HomebrewReportRow = ReportRow & {
