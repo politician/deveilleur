@@ -150,4 +150,27 @@ describe('renderDailyReport', () => {
     expect(markdown).toContain('🖥️ **ghostty** - 4200 📥');
     expect(markdown).not.toContain('null%');
   });
+
+  it('renders losers with a negative all-time percentage even when the stored value is unsigned', () => {
+    const markdown = renderDailyReport({
+      githubNewcomers: [],
+      githubRisers: [],
+      homebrewNewcomers: [],
+      homebrewRisers: [],
+      homebrewLosers: [
+        {
+          name: 'raycast',
+          url: 'https://www.raycast.com/',
+          metricValue: 15500,
+          description: 'Control your tools with a few keystrokes',
+          source: 'HBC',
+          liveChange: -10,
+          alltimeChange: 35
+        }
+      ]
+    });
+
+    expect(markdown).toContain('**-35%** 📉 🖥️ [**raycast**](https://www.raycast.com/) - 15500 📥');
+    expect(markdown).not.toContain('**35%** 📉');
+  });
 });

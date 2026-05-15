@@ -45,8 +45,9 @@ function formatChange(change: number | null | undefined, direction: 'up' | 'down
   }
 
   const icon = direction === 'up' ? '📈' : '📉';
-  const sign = direction === 'up' ? '+' : '';
-  return `**${sign}${change}%** ${icon} `;
+  const normalizedChange = direction === 'up' ? Math.abs(change) : -Math.abs(change);
+  const sign = normalizedChange > 0 ? '+' : '';
+  return `**${sign}${normalizedChange}%** ${icon} `;
 }
 
 export function renderDailyReport(input: {
