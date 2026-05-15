@@ -55,7 +55,7 @@ export function renderDailyReport(input: {
   homebrewRisers: HomebrewRisingReportRow[];
   homebrewLosers: HomebrewLosingReportRow[];
 }): string {
-  const lines = ['# Trending tools', '', '## GitHub', '', '### Newcomers'];
+  const lines = ['# Trending tools', '', '## GitHub', '', '### Newcomers', ''];
 
   for (const row of input.githubNewcomers) {
     lines.push(`${formatName(row.name, row.url)} - ${row.metricValue} ⭐`);

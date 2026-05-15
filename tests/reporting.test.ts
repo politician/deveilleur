@@ -93,6 +93,7 @@ describe('renderDailyReport', () => {
     });
 
     expect(markdown).toContain('## Homebrew (30 days)');
+    expect(markdown).toContain('### Newcomers\n\n[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐');
     expect(markdown).toContain('[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐');
     expect(markdown).toContain('>_ [**bat**](https://github.com/sharkdp/bat) - 120034 📥');
     expect(markdown).toContain('🖥️ [**raycast**](https://www.raycast.com/) - 15500 📥');
