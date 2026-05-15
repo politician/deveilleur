@@ -14,11 +14,23 @@ export type HomebrewReportRow = ReportRow & {
   source: HomebrewSource;
 };
 
-function brewPrefix(source: HomebrewSource): string {
+type RisingReportRow = ReportRow & {
+  liveChange: number;
+};
+
+type HomebrewRisingReportRow = HomebrewReportRow & {
+  liveChange: number;
+};
+
+type HomebrewLosingReportRow = HomebrewReportRow & {
+  alltimeChange: number;
+};
+
+export function brewPrefix(source: HomebrewSource): string {
   return source === 'HBC' ? '🖥️' : '>_';
 }
 
-function brewCommand(verb: 'install' | 'uninstall', source: HomebrewSource, name: string): string {
+export function brewCommand(verb: 'install' | 'uninstall', source: HomebrewSource, name: string): string {
   const caskFlag = source === 'HBC' ? '--cask ' : '';
   return `brew ${verb} ${caskFlag}${name}`.trim();
 }
@@ -27,12 +39,22 @@ function formatName(name: string, url: string | null): string {
   return url ? `[**${name}**](${url})` : `**${name}**`;
 }
 
+function formatChange(change: number | null | undefined, direction: 'up' | 'down'): string {
+  if (change == null) {
+    return '';
+  }
+
+  const icon = direction === 'up' ? '📈' : '📉';
+  const sign = direction === 'up' ? '+' : '';
+  return `**${sign}${change}%** ${icon} `;
+}
+
 export function renderDailyReport(input: {
   githubNewcomers: ReportRow[];
-  githubRisers: ReportRow[];
+  githubRisers: RisingReportRow[];
   homebrewNewcomers: HomebrewReportRow[];
-  homebrewRisers: HomebrewReportRow[];
-  homebrewLosers: HomebrewReportRow[];
+  homebrewRisers: HomebrewRisingReportRow[];
+  homebrewLosers: HomebrewLosingReportRow[];
 }): string {
   const lines = ['# Trending tools', '', '## GitHub', '', '### Newcomers'];
 
@@ -45,7 +67,7 @@ export function renderDailyReport(input: {
 
   lines.push('### Risers', '');
   for (const row of input.githubRisers) {
-    lines.push(`**+${row.liveChange}%** 📈 ${formatName(row.name, row.url)} - ${row.metricValue} ⭐`);
+    lines.push(`${formatChange(row.liveChange, 'up')}${formatName(row.name, row.url)} - ${row.metricValue} ⭐`);
     lines.push(`- *${row.language ?? 'Unknown'}*`);
     lines.push(row.description ?? '');
     lines.push('');
@@ -61,7 +83,7 @@ export function renderDailyReport(input: {
 
   lines.push('### Risers', '');
   for (const row of input.homebrewRisers) {
-    lines.push(`**+${row.liveChange}%** 📈 ${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
+    lines.push(`${formatChange(row.liveChange, 'up')}${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
     lines.push(row.description ?? '');
     lines.push(`\`${brewCommand('install', row.source, row.name)}\``);
     lines.push('');
@@ -69,7 +91,7 @@ export function renderDailyReport(input: {
 
   lines.push('### Losers', '');
   for (const row of input.homebrewLosers) {
-    lines.push(`**${row.alltimeChange}%** 📉 ${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
+    lines.push(`${formatChange(row.alltimeChange, 'down')}${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
     lines.push(row.description ?? '');
     lines.push(`\`${brewCommand('uninstall', row.source, row.name)}\``);
     lines.push('');
