@@ -1,121 +1,149 @@
-export type HomebrewSource = 'HB' | 'HBC';
-
 import type { Kysely } from 'kysely';
 
 import type { DatabaseSchema } from '../db/schema.js';
 
-export type ReportRow = {
+// --- JSON report types ---
+
+export type HomebrewKind = 'formula' | 'cask';
+
+export interface GithubEntry {
   name: string;
   url: string | null;
-  metricValue: number;
-  language?: string | null;
+  stars: number;
+  language: string | null;
   description: string | null;
-};
-
-export type HomebrewReportRow = ReportRow & {
-  source: HomebrewSource;
-};
-
-export type GitHubRisingReportRow = ReportRow & {
-  liveChange: number | null;
-};
-
-export type HomebrewRisingReportRow = HomebrewReportRow & {
-  liveChange: number | null;
-};
-
-export type HomebrewLosingReportRow = HomebrewReportRow & {
-  alltimeChange: number | null;
-};
-
-export function brewPrefix(source: HomebrewSource): string {
-  return source === 'HBC' ? '🖥️' : '>_';
 }
 
-export function brewCommand(verb: 'install' | 'uninstall', source: HomebrewSource, name: string): string {
-  const caskFlag = source === 'HBC' ? '--cask ' : '';
+export interface GithubRiserEntry extends GithubEntry {
+  changePercent: number | null;
+}
+
+export interface HomebrewEntry {
+  name: string;
+  url: string | null;
+  installs: number;
+  description: string | null;
+  kind: HomebrewKind;
+}
+
+export interface HomebrewRiserEntry extends HomebrewEntry {
+  changePercent: number | null;
+}
+
+export interface HomebrewLoserEntry extends HomebrewEntry {
+  changePercent: number | null;
+}
+
+export interface ReportJson {
+  github: {
+    newcomers: GithubEntry[];
+    risers: GithubRiserEntry[];
+  };
+  homebrew: {
+    newcomers: HomebrewEntry[];
+    risers: HomebrewRiserEntry[];
+    losers: HomebrewLoserEntry[];
+  };
+}
+
+// --- Helpers ---
+
+export function brewKind(source: 'HB' | 'HBC'): HomebrewKind {
+  return source === 'HBC' ? 'cask' : 'formula';
+}
+
+export function brewPrefix(kind: HomebrewKind): string {
+  return kind === 'cask' ? '🖥️' : '`>_`';
+}
+
+export function brewCommand(
+  verb: 'install' | 'uninstall',
+  kind: HomebrewKind,
+  name: string
+): string {
+  const caskFlag = kind === 'cask' ? '--cask ' : '';
   return `brew ${verb} ${caskFlag}${name}`.trim();
 }
+
+// --- Markdown rendering ---
 
 function formatName(name: string, url: string | null): string {
   return url ? `[**${name}**](${url})` : `**${name}**`;
 }
 
-function formatChange(change: number | null | undefined, direction: 'up' | 'down'): string {
-  if (change == null) {
-    return '';
-  }
-
+function formatChange(
+  change: number | null | undefined,
+  direction: 'up' | 'down'
+): string {
+  if (change == null) return '';
   const icon = direction === 'up' ? '📈' : '📉';
-  const normalizedChange = direction === 'up' ? Math.abs(change) : -Math.abs(change);
-  const sign = normalizedChange > 0 ? '+' : '';
-  return `**${sign}${normalizedChange}%** ${icon}`;
+  const normalized = direction === 'up' ? Math.abs(change) : -Math.abs(change);
+  const sign = normalized > 0 ? '+' : '';
+  return `**${sign}${normalized}%** ${icon}`;
 }
 
-export function renderDailyReport(input: {
-  githubNewcomers: ReportRow[];
-  githubRisers: GitHubRisingReportRow[];
-  homebrewNewcomers: HomebrewReportRow[];
-  homebrewRisers: HomebrewRisingReportRow[];
-  homebrewLosers: HomebrewLosingReportRow[];
-}): string {
+export function renderDailyReport(report: ReportJson): string {
   const lines = ['# Trending tools', '', '## GitHub', '', '### Newcomers', ''];
 
-  for (const row of input.githubNewcomers) {
-    lines.push(`${formatName(row.name, row.url)} - ${row.metricValue} ⭐`);
-    lines.push(`- *${row.language ?? 'Unknown'}*`);
-    lines.push(row.description ?? '');
+  for (const entry of report.github.newcomers) {
+    const lang = entry.language ? ` · *${entry.language}*` : '';
+    lines.push(`${formatName(entry.name, entry.url)} - ${entry.stars} ⭐${lang}`);
+    if (entry.description) lines.push(entry.description);
     lines.push('');
   }
 
   lines.push('### Risers', '');
-  for (const row of input.githubRisers) {
-    const formattedChange = formatChange(row.liveChange, 'up');
-    lines.push(`${formattedChange}${formattedChange ? ' ' : ''}${formatName(row.name, row.url)} - ${row.metricValue} ⭐`);
-    lines.push(`- *${row.language ?? 'Unknown'}*`);
-    lines.push(row.description ?? '');
+  for (const entry of report.github.risers) {
+    const change = formatChange(entry.changePercent, 'up');
+    const lang = entry.language ? ` · *${entry.language}*` : '';
+    lines.push(
+      `${change}${change ? ' ' : ''}${formatName(entry.name, entry.url)} - ${entry.stars} ⭐${lang}`
+    );
+    if (entry.description) lines.push(entry.description);
     lines.push('');
   }
 
   lines.push('## Homebrew (30 days)', '', '### Newcomers', '');
-  for (const row of input.homebrewNewcomers) {
-    lines.push(`${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
-    lines.push(row.description ?? '');
-    lines.push(`\`${brewCommand('install', row.source, row.name)}\``);
+  for (const entry of report.homebrew.newcomers) {
+    lines.push(
+      `${brewPrefix(entry.kind)} ${formatName(entry.name, entry.url)} - ${entry.installs} 📥`
+    );
+    if (entry.description) lines.push(entry.description);
+    lines.push(`\`${brewCommand('install', entry.kind, entry.name)}\``);
     lines.push('');
   }
 
   lines.push('### Risers', '');
-  for (const row of input.homebrewRisers) {
-    const formattedChange = formatChange(row.liveChange, 'up');
-    lines.push(`${formattedChange}${formattedChange ? ' ' : ''}${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
-    lines.push(row.description ?? '');
-    lines.push(`\`${brewCommand('install', row.source, row.name)}\``);
+  for (const entry of report.homebrew.risers) {
+    const change = formatChange(entry.changePercent, 'up');
+    lines.push(
+      `${change}${change ? ' ' : ''}${brewPrefix(entry.kind)} ${formatName(entry.name, entry.url)} - ${entry.installs} 📥`
+    );
+    if (entry.description) lines.push(entry.description);
+    lines.push(`\`${brewCommand('install', entry.kind, entry.name)}\``);
     lines.push('');
   }
 
   lines.push('### Losers', '');
-  for (const row of input.homebrewLosers) {
-    const formattedChange = formatChange(row.alltimeChange, 'down');
-    lines.push(`${formattedChange}${formattedChange ? ' ' : ''}${brewPrefix(row.source)} ${formatName(row.name, row.url)} - ${row.metricValue} 📥`);
-    lines.push(row.description ?? '');
-    lines.push(`\`${brewCommand('uninstall', row.source, row.name)}\``);
+  for (const entry of report.homebrew.losers) {
+    const change = formatChange(entry.changePercent, 'down');
+    lines.push(
+      `${change}${change ? ' ' : ''}${brewPrefix(entry.kind)} ${formatName(entry.name, entry.url)} - ${entry.installs} 📥`
+    );
+    if (entry.description) lines.push(entry.description);
+    lines.push(`\`${brewCommand('uninstall', entry.kind, entry.name)}\``);
     lines.push('');
   }
 
   return lines.join('\n').trimEnd() + '\n';
 }
 
+// --- DB queries ---
+
 export async function selectReportData(
   db: Kysely<DatabaseSchema>,
   runDate: string
-): Promise<{
-  githubNewcomers: ReportRow[];
-  githubRisers: GitHubRisingReportRow[];
-  homebrewNewcomers: HomebrewReportRow[];
-  homebrewRisers: HomebrewRisingReportRow[];
-  homebrewLosers: HomebrewLosingReportRow[];
-}> {
+): Promise<ReportJson> {
   const rawGhNewcomers = await db
     .selectFrom('entries')
     .innerJoin('daily_metrics', 'daily_metrics.entry_id', 'entries.id')
@@ -132,14 +160,6 @@ export async function selectReportData(
     .orderBy('daily_metrics.metric_value', 'desc')
     .limit(25)
     .execute();
-
-  const githubNewcomers: ReportRow[] = rawGhNewcomers.map((row) => ({
-    name: row.name,
-    url: row.url,
-    metricValue: row.metric_value,
-    language: row.language,
-    description: row.description
-  }));
 
   const rawGhRisers = await db
     .selectFrom('entries')
@@ -161,15 +181,6 @@ export async function selectReportData(
     .limit(10)
     .execute();
 
-  const githubRisers: GitHubRisingReportRow[] = rawGhRisers.map((row) => ({
-    name: row.name,
-    url: row.url,
-    metricValue: row.metric_value,
-    language: row.language,
-    description: row.description,
-    liveChange: row.live_change
-  }));
-
   const rawHbNewcomers = await db
     .selectFrom('entries')
     .innerJoin('daily_metrics', 'daily_metrics.entry_id', 'entries.id')
@@ -187,14 +198,6 @@ export async function selectReportData(
     .orderBy('daily_metrics.metric_value', 'desc')
     .limit(25)
     .execute();
-
-  const homebrewNewcomers: HomebrewReportRow[] = rawHbNewcomers.map((row) => ({
-    name: row.name,
-    url: row.url,
-    metricValue: row.metric_value,
-    description: row.description,
-    source: row.source as HomebrewSource
-  }));
 
   const rawHbRisers = await db
     .selectFrom('entries')
@@ -217,15 +220,6 @@ export async function selectReportData(
     .limit(10)
     .execute();
 
-  const homebrewRisers: HomebrewRisingReportRow[] = rawHbRisers.map((row) => ({
-    name: row.name,
-    url: row.url,
-    metricValue: row.metric_value,
-    description: row.description,
-    source: row.source as HomebrewSource,
-    liveChange: row.live_change
-  }));
-
   const rawHbLosers = await db
     .selectFrom('entries')
     .innerJoin('daily_metrics', 'daily_metrics.entry_id', 'entries.id')
@@ -246,20 +240,48 @@ export async function selectReportData(
     .limit(10)
     .execute();
 
-  const homebrewLosers: HomebrewLosingReportRow[] = rawHbLosers.map((row) => ({
-    name: row.name,
-    url: row.url,
-    metricValue: row.metric_value,
-    description: row.description,
-    source: row.source as HomebrewSource,
-    alltimeChange: row.alltime_change
-  }));
-
   return {
-    githubNewcomers,
-    githubRisers,
-    homebrewNewcomers,
-    homebrewRisers,
-    homebrewLosers
+    github: {
+      newcomers: rawGhNewcomers.map((row) => ({
+        name: row.name,
+        url: row.url,
+        stars: row.metric_value,
+        language: row.language,
+        description: row.description
+      })),
+      risers: rawGhRisers.map((row) => ({
+        name: row.name,
+        url: row.url,
+        stars: row.metric_value,
+        language: row.language,
+        description: row.description,
+        changePercent: row.live_change
+      }))
+    },
+    homebrew: {
+      newcomers: rawHbNewcomers.map((row) => ({
+        name: row.name,
+        url: row.url,
+        installs: row.metric_value,
+        description: row.description,
+        kind: brewKind(row.source as 'HB' | 'HBC')
+      })),
+      risers: rawHbRisers.map((row) => ({
+        name: row.name,
+        url: row.url,
+        installs: row.metric_value,
+        description: row.description,
+        kind: brewKind(row.source as 'HB' | 'HBC'),
+        changePercent: row.live_change
+      })),
+      losers: rawHbLosers.map((row) => ({
+        name: row.name,
+        url: row.url,
+        installs: row.metric_value,
+        description: row.description,
+        kind: brewKind(row.source as 'HB' | 'HBC'),
+        changePercent: row.alltime_change
+      }))
+    }
   };
 }

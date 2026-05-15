@@ -91,7 +91,7 @@ export async function runDaily(input: {
       )
       .execute();
 
-    return { outputPath, markdown, reportRecorded: true };
+    return { outputPath, markdown, json: reportData, reportRecorded: true };
   } finally {
     await db.destroy();
   }

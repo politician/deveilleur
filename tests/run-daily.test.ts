@@ -130,11 +130,8 @@ describe('runDaily', () => {
     }));
     vi.doMock('../src/services/reporting.js', () => ({
       selectReportData: vi.fn().mockResolvedValue({
-        githubNewcomers: [],
-        githubRisers: [],
-        homebrewNewcomers: [],
-        homebrewRisers: [],
-        homebrewLosers: []
+        github: { newcomers: [], risers: [] },
+        homebrew: { newcomers: [], risers: [], losers: [] }
       }),
       renderDailyReport: vi.fn().mockReturnValue('# Report')
     }));

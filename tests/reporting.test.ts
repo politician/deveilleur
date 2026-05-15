@@ -2,212 +2,270 @@ import { describe, expect, it } from 'vitest';
 
 import {
   brewCommand,
+  brewKind,
   brewPrefix,
   renderDailyReport,
-  type GitHubRisingReportRow,
-  type HomebrewLosingReportRow,
-  type HomebrewReportRow,
-  type HomebrewRisingReportRow,
-  type HomebrewSource,
-  type ReportRow
+  type GithubEntry,
+  type GithubRiserEntry,
+  type HomebrewEntry,
+  type HomebrewKind,
+  type HomebrewLoserEntry,
+  type HomebrewRiserEntry,
+  type ReportJson
 } from '../src/services/reporting.js';
 
-const homebrewSource: HomebrewSource = 'HB';
+const kind: HomebrewKind = 'formula';
 
-// @ts-expect-error Homebrew rows must declare their source.
-const invalidHomebrewRow: HomebrewReportRow = {
-  name: 'missing-source',
+// @ts-expect-error Homebrew rows must declare their kind.
+const invalidHomebrewRow: HomebrewEntry = {
+  name: 'missing-kind',
   url: null,
-  metricValue: 1,
+  installs: 1,
   description: null
 };
 
-const invalidBaseReportRow: ReportRow = {
+const invalidBaseRow: GithubEntry = {
   name: 'unexpected-change',
   url: null,
-  metricValue: 1,
+  stars: 1,
+  language: null,
   description: null,
-  // @ts-expect-error Base report rows must not expose live change.
-  liveChange: 5
+  // @ts-expect-error Base GitHub entries must not expose changePercent.
+  changePercent: 5
 };
 
-const invalidHomebrewNewcomerRow: HomebrewReportRow = {
-  name: 'unexpected-alltime-change',
+const invalidNewcomerRow: HomebrewEntry = {
+  name: 'unexpected-change',
   url: null,
-  metricValue: 1,
+  installs: 1,
   description: null,
-  source: 'HB',
-  // @ts-expect-error Homebrew newcomer rows must not expose all-time change.
-  alltimeChange: -5
+  kind: 'formula',
+  // @ts-expect-error Homebrew newcomer rows must not expose changePercent.
+  changePercent: -5
 };
 
 void invalidHomebrewRow;
-void invalidBaseReportRow;
-void invalidHomebrewNewcomerRow;
-void homebrewSource;
+void invalidBaseRow;
+void invalidNewcomerRow;
+void kind;
+
+function emptyReport(): ReportJson {
+  return {
+    github: { newcomers: [], risers: [] },
+    homebrew: { newcomers: [], risers: [], losers: [] }
+  };
+}
 
 describe('renderDailyReport', () => {
   it('exports the homebrew helpers as part of the reporting API', () => {
-    expect(brewPrefix('HB')).toBe('>_');
-    expect(brewPrefix('HBC')).toBe('🖥️');
-    expect(brewCommand('install', 'HB', 'bat')).toBe('brew install bat');
-    expect(brewCommand('uninstall', 'HBC', 'raycast')).toBe('brew uninstall --cask raycast');
+    expect(brewKind('HB')).toBe('formula');
+    expect(brewKind('HBC')).toBe('cask');
+    expect(brewPrefix('formula')).toBe('`>_`');
+    expect(brewPrefix('cask')).toBe('🖥️');
+    expect(brewCommand('install', 'formula', 'bat')).toBe('brew install bat');
+    expect(brewCommand('uninstall', 'cask', 'raycast')).toBe(
+      'brew uninstall --cask raycast'
+    );
   });
 
   it('renders GH, HB, and HBC sections with the required formatting', () => {
-    const githubNewcomers: ReportRow[] = [
-      {
-        name: 'zed',
-        url: 'https://github.com/zed-industries/zed',
-        metricValue: 52731,
-        language: 'Rust',
-        description: 'Code editor for high-agency developers'
+    const report: ReportJson = {
+      github: {
+        newcomers: [
+          {
+            name: 'zed',
+            url: 'https://github.com/zed-industries/zed',
+            stars: 52731,
+            language: 'Rust',
+            description: 'Code editor for high-agency developers'
+          }
+        ],
+        risers: []
+      },
+      homebrew: {
+        newcomers: [
+          {
+            name: 'bat',
+            url: 'https://github.com/sharkdp/bat',
+            installs: 120034,
+            description: 'Clone of cat(1) with wings.',
+            kind: 'formula'
+          }
+        ],
+        risers: [],
+        losers: [
+          {
+            name: 'raycast',
+            url: 'https://www.raycast.com/',
+            installs: 15500,
+            description: 'Control your tools with a few keystrokes',
+            kind: 'cask',
+            changePercent: -35
+          }
+        ]
       }
-    ];
-    const homebrewNewcomers: HomebrewReportRow[] = [
-      {
-        name: 'bat',
-        url: 'https://github.com/sharkdp/bat',
-        metricValue: 120034,
-        description: 'Clone of cat(1) with wings.',
-        source: 'HB'
-      }
-    ];
-    const homebrewLosers: HomebrewLosingReportRow[] = [
-      {
-        name: 'raycast',
-        url: 'https://www.raycast.com/',
-        metricValue: 15500,
-        description: 'Control your tools with a few keystrokes',
-        source: 'HBC',
-        alltimeChange: -35
-      }
-    ];
+    };
 
-    const markdown = renderDailyReport({
-      githubNewcomers,
-      githubRisers: [],
-      homebrewNewcomers,
-      homebrewRisers: [],
-      homebrewLosers
-    });
+    const markdown = renderDailyReport(report);
 
     expect(markdown).toContain('## Homebrew (30 days)');
-    expect(markdown).toContain('### Newcomers\n\n[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐');
-    expect(markdown).toContain('[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐');
-    expect(markdown).toContain('>_ [**bat**](https://github.com/sharkdp/bat) - 120034 📥');
-    expect(markdown).toContain('🖥️ [**raycast**](https://www.raycast.com/) - 15500 📥');
+    expect(markdown).toContain(
+      '### Newcomers\n\n[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐ · *Rust*'
+    );
+    expect(markdown).toContain(
+      '`>_` [**bat**](https://github.com/sharkdp/bat) - 120034 📥'
+    );
+    expect(markdown).toContain(
+      '🖥️ [**raycast**](https://www.raycast.com/) - 15500 📥'
+    );
     expect(markdown).toContain('`brew uninstall --cask raycast`');
   });
 
   it('renders plain bold text when a row URL is null', () => {
-    const markdown = renderDailyReport({
-      githubNewcomers: [],
-      githubRisers: [],
-      homebrewNewcomers: [
-        {
-          name: 'ghostty',
-          url: null,
-          metricValue: 4200,
-          description: 'Fast, feature-rich terminal emulator',
-          source: 'HBC'
-        }
-      ],
-      homebrewRisers: [],
-      homebrewLosers: []
-    });
+    const report = emptyReport();
+    report.homebrew.newcomers = [
+      {
+        name: 'ghostty',
+        url: null,
+        installs: 4200,
+        description: 'Fast, feature-rich terminal emulator',
+        kind: 'cask'
+      }
+    ];
+
+    const markdown = renderDailyReport(report);
 
     expect(markdown).toContain('🖥️ **ghostty** - 4200 📥');
     expect(markdown).not.toContain('[**ghostty**](null)');
   });
 
   it('omits missing change values instead of rendering null%', () => {
-    const githubRisers: GitHubRisingReportRow[] = [
-      {
-        name: 'zed',
-        url: 'https://github.com/zed-industries/zed',
-        metricValue: 52731,
-        language: 'Rust',
-        description: 'Code editor for high-agency developers',
-        liveChange: null
+    const report: ReportJson = {
+      github: {
+        newcomers: [],
+        risers: [
+          {
+            name: 'zed',
+            url: 'https://github.com/zed-industries/zed',
+            stars: 52731,
+            language: 'Rust',
+            description: 'Code editor for high-agency developers',
+            changePercent: null
+          }
+        ]
+      },
+      homebrew: {
+        newcomers: [],
+        risers: [
+          {
+            name: 'bat',
+            url: 'https://github.com/sharkdp/bat',
+            installs: 120034,
+            description: 'Clone of cat(1) with wings.',
+            kind: 'formula',
+            changePercent: null
+          }
+        ],
+        losers: [
+          {
+            name: 'ghostty',
+            url: null,
+            installs: 4200,
+            description: 'Fast, feature-rich terminal emulator',
+            kind: 'cask',
+            changePercent: null
+          }
+        ]
       }
-    ];
-    const homebrewRisers: HomebrewRisingReportRow[] = [
-      {
-        name: 'bat',
-        url: 'https://github.com/sharkdp/bat',
-        metricValue: 120034,
-        description: 'Clone of cat(1) with wings.',
-        source: 'HB',
-        liveChange: null
-      }
-    ];
-    const homebrewLosers: HomebrewLosingReportRow[] = [
-      {
-        name: 'ghostty',
-        url: null,
-        metricValue: 4200,
-        description: 'Fast, feature-rich terminal emulator',
-        source: 'HBC',
-        alltimeChange: null
-      }
-    ];
+    };
 
-    const markdown = renderDailyReport({
-      githubNewcomers: [],
-      githubRisers,
-      homebrewNewcomers: [],
-      homebrewRisers,
-      homebrewLosers
-    });
+    const markdown = renderDailyReport(report);
 
-    expect(markdown).toContain('[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐');
-    expect(markdown).toContain('>_ [**bat**](https://github.com/sharkdp/bat) - 120034 📥');
+    expect(markdown).toContain(
+      '[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐'
+    );
+    expect(markdown).toContain(
+      '`>_` [**bat**](https://github.com/sharkdp/bat) - 120034 📥'
+    );
     expect(markdown).toContain('🖥️ **ghostty** - 4200 📥');
     expect(markdown).not.toContain('null%');
   });
 
   it('renders losers with a negative all-time percentage even when the stored value is unsigned', () => {
-    const markdown = renderDailyReport({
-      githubNewcomers: [],
-      githubRisers: [],
-      homebrewNewcomers: [],
-      homebrewRisers: [],
-      homebrewLosers: [
-        {
-          name: 'raycast',
-          url: 'https://www.raycast.com/',
-          metricValue: 15500,
-          description: 'Control your tools with a few keystrokes',
-          source: 'HBC',
-          alltimeChange: 35
-        }
-      ]
-    });
+    const report = emptyReport();
+    report.homebrew.losers = [
+      {
+        name: 'raycast',
+        url: 'https://www.raycast.com/',
+        installs: 15500,
+        description: 'Control your tools with a few keystrokes',
+        kind: 'cask',
+        changePercent: 35
+      }
+    ];
 
-    expect(markdown).toContain('**-35%** 📉 🖥️ [**raycast**](https://www.raycast.com/) - 15500 📥');
+    const markdown = renderDailyReport(report);
+
+    expect(markdown).toContain(
+      '**-35%** 📉 🖥️ [**raycast**](https://www.raycast.com/) - 15500 📥'
+    );
     expect(markdown).not.toContain('**35%** 📉');
   });
 
   it('renders rising entries with a single explicit space after the formatted change', () => {
-    const markdown = renderDailyReport({
-      githubNewcomers: [],
-      githubRisers: [],
-      homebrewNewcomers: [],
-      homebrewRisers: [
-        {
-          name: 'bat',
-          url: 'https://github.com/sharkdp/bat',
-          metricValue: 120034,
-          description: 'Clone of cat(1) with wings.',
-          source: 'HB',
-          liveChange: 12
-        }
-      ],
-      homebrewLosers: []
-    });
+    const report = emptyReport();
+    report.homebrew.risers = [
+      {
+        name: 'bat',
+        url: 'https://github.com/sharkdp/bat',
+        installs: 120034,
+        description: 'Clone of cat(1) with wings.',
+        kind: 'formula',
+        changePercent: 12
+      }
+    ];
 
-    expect(markdown).toContain('**+12%** 📈 >_ [**bat**](https://github.com/sharkdp/bat) - 120034 📥');
-    expect(markdown).not.toContain('**+12%** 📈  >_');
+    const markdown = renderDailyReport(report);
+
+    expect(markdown).toContain(
+      '**+12%** 📈 `>_` [**bat**](https://github.com/sharkdp/bat) - 120034 📥'
+    );
+    expect(markdown).not.toContain('**+12%** 📈  `>_`');
+  });
+
+  it('renders language inline and omits it when null', () => {
+    const report: ReportJson = {
+      github: {
+        newcomers: [
+          {
+            name: 'zed',
+            url: 'https://github.com/zed-industries/zed',
+            stars: 52731,
+            language: 'Rust',
+            description: 'Code editor'
+          },
+          {
+            name: 'docs',
+            url: 'https://github.com/org/docs',
+            stars: 100,
+            language: null,
+            description: 'Documentation'
+          }
+        ],
+        risers: []
+      },
+      homebrew: { newcomers: [], risers: [], losers: [] }
+    };
+
+    const markdown = renderDailyReport(report);
+
+    expect(markdown).toContain(
+      '[**zed**](https://github.com/zed-industries/zed) - 52731 ⭐ · *Rust*'
+    );
+    expect(markdown).toContain(
+      '[**docs**](https://github.com/org/docs) - 100 ⭐\nDocumentation'
+    );
+    expect(markdown).not.toContain('- *');
+    expect(markdown).not.toContain('Unknown');
   });
 });
