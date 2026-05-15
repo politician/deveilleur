@@ -1,5 +1,8 @@
 import { pathToFileURL } from 'node:url';
 
+import { runDaily } from './commands/run-daily.js';
+import { SQLITE_PATH, isoDate } from './config.js';
+
 export async function main(argv = process.argv.slice(2)): Promise<number> {
   if (argv.length === 0 || argv[0] === '--help') {
     console.log('Usage: tool-discovery run-daily');
@@ -7,7 +10,13 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   }
 
   if (argv[0] === 'run-daily') {
-    console.log('run-daily not implemented yet');
+    await runDaily({
+      runDate: isoDate(),
+      databasePath: SQLITE_PATH,
+      reportsDir: 'reports',
+      githubItems: [],
+      homebrewItems: []
+    });
     return 0;
   }
 
