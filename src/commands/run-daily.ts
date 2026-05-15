@@ -5,7 +5,7 @@ import { createDatabase } from '../db/database.js';
 import { migrate } from '../db/migrate.js';
 import { upsertEntry } from '../services/catalog.js';
 import { recordDailyMetric } from '../services/metrics.js';
-import { renderDailyReport } from '../services/reporting.js';
+import { renderDailyReport, selectReportData } from '../services/reporting.js';
 
 export type RunDailyGithubItem = {
   source: 'GH';
@@ -70,13 +70,8 @@ export async function runDaily(input: {
       });
     }
 
-    const markdown = renderDailyReport({
-      githubNewcomers: [],
-      githubRisers: [],
-      homebrewNewcomers: [],
-      homebrewRisers: [],
-      homebrewLosers: []
-    });
+    const reportData = await selectReportData(db, input.runDate);
+    const markdown = renderDailyReport(reportData);
 
     await fs.mkdir(input.reportsDir, { recursive: true });
     const outputPath = path.join(input.reportsDir, `${input.runDate}.md`);

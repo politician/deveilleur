@@ -128,6 +128,16 @@ describe('runDaily', () => {
     vi.doMock('../src/services/metrics.js', () => ({
       recordDailyMetric: vi.fn()
     }));
+    vi.doMock('../src/services/reporting.js', () => ({
+      selectReportData: vi.fn().mockResolvedValue({
+        githubNewcomers: [],
+        githubRisers: [],
+        homebrewNewcomers: [],
+        homebrewRisers: [],
+        homebrewLosers: []
+      }),
+      renderDailyReport: vi.fn().mockReturnValue('# Report')
+    }));
 
     const { runDaily: mockedRunDaily } = await import('../src/commands/run-daily.js');
 

@@ -1,5 +1,9 @@
 export type HomebrewSource = 'HB' | 'HBC';
 
+import type { Kysely } from 'kysely';
+
+import type { DatabaseSchema } from '../db/schema.js';
+
 export type ReportRow = {
   name: string;
   url: string | null;
@@ -100,4 +104,162 @@ export function renderDailyReport(input: {
   }
 
   return lines.join('\n').trimEnd() + '\n';
+}
+
+export async function selectReportData(
+  db: Kysely<DatabaseSchema>,
+  runDate: string
+): Promise<{
+  githubNewcomers: ReportRow[];
+  githubRisers: GitHubRisingReportRow[];
+  homebrewNewcomers: HomebrewReportRow[];
+  homebrewRisers: HomebrewRisingReportRow[];
+  homebrewLosers: HomebrewLosingReportRow[];
+}> {
+  const rawGhNewcomers = await db
+    .selectFrom('entries')
+    .innerJoin('daily_metrics', 'daily_metrics.entry_id', 'entries.id')
+    .select([
+      'entries.name',
+      'entries.url',
+      'entries.language',
+      'entries.description',
+      'daily_metrics.metric_value'
+    ])
+    .where('entries.source', '=', 'GH')
+    .where('entries.first_seen_at', '=', runDate)
+    .where('daily_metrics.metric_date', '=', runDate)
+    .orderBy('daily_metrics.metric_value', 'desc')
+    .limit(25)
+    .execute();
+
+  const githubNewcomers: ReportRow[] = rawGhNewcomers.map((row) => ({
+    name: row.name,
+    url: row.url,
+    metricValue: row.metric_value,
+    language: row.language,
+    description: row.description
+  }));
+
+  const rawGhRisers = await db
+    .selectFrom('entries')
+    .innerJoin('daily_metrics', 'daily_metrics.entry_id', 'entries.id')
+    .select([
+      'entries.name',
+      'entries.url',
+      'entries.language',
+      'entries.description',
+      'daily_metrics.metric_value',
+      'daily_metrics.live_change'
+    ])
+    .where('entries.source', '=', 'GH')
+    .where('daily_metrics.metric_date', '=', runDate)
+    .where('daily_metrics.live_change', 'is not', null)
+    .where('daily_metrics.live_change', '>', 0)
+    .where('entries.first_seen_at', '!=', runDate)
+    .orderBy('daily_metrics.live_change', 'desc')
+    .limit(10)
+    .execute();
+
+  const githubRisers: GitHubRisingReportRow[] = rawGhRisers.map((row) => ({
+    name: row.name,
+    url: row.url,
+    metricValue: row.metric_value,
+    language: row.language,
+    description: row.description,
+    liveChange: row.live_change
+  }));
+
+  const rawHbNewcomers = await db
+    .selectFrom('entries')
+    .innerJoin('daily_metrics', 'daily_metrics.entry_id', 'entries.id')
+    .select([
+      'entries.name',
+      'entries.url',
+      'entries.description',
+      'entries.source',
+      'daily_metrics.metric_value'
+    ])
+    .where('entries.source', 'in', ['HB', 'HBC'])
+    .where('entries.first_seen_at', '=', runDate)
+    .where('entries.dependency', '=', 0)
+    .where('daily_metrics.metric_date', '=', runDate)
+    .orderBy('daily_metrics.metric_value', 'desc')
+    .limit(25)
+    .execute();
+
+  const homebrewNewcomers: HomebrewReportRow[] = rawHbNewcomers.map((row) => ({
+    name: row.name,
+    url: row.url,
+    metricValue: row.metric_value,
+    description: row.description,
+    source: row.source as HomebrewSource
+  }));
+
+  const rawHbRisers = await db
+    .selectFrom('entries')
+    .innerJoin('daily_metrics', 'daily_metrics.entry_id', 'entries.id')
+    .select([
+      'entries.name',
+      'entries.url',
+      'entries.description',
+      'entries.source',
+      'daily_metrics.metric_value',
+      'daily_metrics.live_change'
+    ])
+    .where('entries.source', 'in', ['HB', 'HBC'])
+    .where('entries.dependency', '=', 0)
+    .where('daily_metrics.metric_date', '=', runDate)
+    .where('daily_metrics.live_change', 'is not', null)
+    .where('daily_metrics.live_change', '>', 0)
+    .where('entries.first_seen_at', '!=', runDate)
+    .orderBy('daily_metrics.live_change', 'desc')
+    .limit(10)
+    .execute();
+
+  const homebrewRisers: HomebrewRisingReportRow[] = rawHbRisers.map((row) => ({
+    name: row.name,
+    url: row.url,
+    metricValue: row.metric_value,
+    description: row.description,
+    source: row.source as HomebrewSource,
+    liveChange: row.live_change
+  }));
+
+  const rawHbLosers = await db
+    .selectFrom('entries')
+    .innerJoin('daily_metrics', 'daily_metrics.entry_id', 'entries.id')
+    .select([
+      'entries.name',
+      'entries.url',
+      'entries.description',
+      'entries.source',
+      'daily_metrics.metric_value',
+      'daily_metrics.alltime_change'
+    ])
+    .where('entries.source', 'in', ['HB', 'HBC'])
+    .where('entries.dependency', '=', 0)
+    .where('daily_metrics.metric_date', '=', runDate)
+    .where('daily_metrics.alltime_change', 'is not', null)
+    .where('daily_metrics.alltime_change', '<', 0)
+    .orderBy('daily_metrics.alltime_change', 'asc')
+    .limit(10)
+    .execute();
+
+  const homebrewLosers: HomebrewLosingReportRow[] = rawHbLosers.map((row) => ({
+    name: row.name,
+    url: row.url,
+    metricValue: row.metric_value,
+    description: row.description,
+    source: row.source as HomebrewSource,
+    alltimeChange: row.alltime_change
+  }));
+
+  return {
+    githubNewcomers,
+    githubRisers,
+    homebrewNewcomers,
+    homebrewRisers,
+    homebrewLosers
+  };
 }

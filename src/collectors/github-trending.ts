@@ -93,3 +93,11 @@ export async function collectGitHubTrending(
 
   return [...merged.values()];
 }
+
+export async function fetchGitHubTrendingPage(period: GitHubPeriod): Promise<string> {
+  const response = await fetch(`https://github.com/trending?since=${period}`);
+  if (!response.ok) {
+    throw new Error(`GitHub trending fetch failed (${period}): ${response.status}`);
+  }
+  return response.text();
+}

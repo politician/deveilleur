@@ -19,6 +19,13 @@ describe('main', () => {
   it('prints the report path after run-daily succeeds', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
+    vi.doMock('../src/collectors/github-trending.js', () => ({
+      collectGitHubTrending: vi.fn().mockResolvedValue([]),
+      fetchGitHubTrendingPage: vi.fn()
+    }));
+    vi.doMock('../src/collectors/homebrew.js', () => ({
+      fetchHomebrewAnalytics: vi.fn().mockResolvedValue([])
+    }));
     vi.doMock('../src/commands/run-daily.js', () => ({
       runDaily: vi.fn().mockResolvedValue({
         outputPath: 'reports/2026-05-13.md',
