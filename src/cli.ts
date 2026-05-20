@@ -7,11 +7,15 @@ import { SQLITE_PATH, isoDate } from './config.js';
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
   if (argv.length === 0 || argv[0] === '--help') {
-    console.log('Usage: tool-discovery run-daily');
+    console.log('Usage: tool-discovery run-daily [--telegram-html]');
     return 0;
   }
 
   if (argv[0] === 'run-daily') {
+    const outputFormats = argv.includes('--telegram-html')
+      ? (['markdown', 'telegram-html'] as const)
+      : (['markdown'] as const);
+
     console.log('Collecting GitHub Trending...');
     const [githubItems, homebrewItems] = await Promise.all([
       collectGitHubTrending(fetchGitHubTrendingPage),
@@ -25,10 +29,14 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       runDate: isoDate(),
       databasePath: SQLITE_PATH,
       reportsDir: 'reports',
+      outputFormats: [...outputFormats],
       githubItems,
       homebrewItems
     });
     console.log(`Report written to ${result.outputPath}`);
+    if (result.telegramHtmlPath) {
+      console.log(`Telegram HTML report written to ${result.telegramHtmlPath}`);
+    }
     return 0;
   }
 

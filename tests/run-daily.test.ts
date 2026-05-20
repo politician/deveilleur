@@ -149,4 +149,42 @@ describe('runDaily', () => {
     ).rejects.toThrow('write failed');
     expect(destroy).toHaveBeenCalledTimes(1);
   });
+
+  it('writes a companion Telegram HTML report when requested', async () => {
+    const markdownPath = 'reports/2026-05-13.md';
+    const telegramPath = 'reports/2026-05-13.telegram.html';
+
+    try {
+      const result = await runDaily({
+        runDate: '2026-05-13',
+        databasePath: ':memory:',
+        reportsDir: 'reports',
+        outputFormats: ['markdown', 'telegram-html'],
+        githubItems: [
+          {
+            source: 'GH',
+            sourceKey: 'zed-industries/zed',
+            name: 'zed',
+            description: 'Code editor for high-agency developers',
+            language: 'Rust',
+            url: 'https://github.com/zed-industries/zed',
+            totalStars: 52731,
+            ghTodayChange: 842,
+            ghWeeklyChange: 1900,
+            ghMonthlyChange: 4300
+          }
+        ],
+        homebrewItems: []
+      });
+
+      expect(result.outputPath).toBe(markdownPath);
+      expect(result.telegramHtmlPath).toBe(telegramPath);
+      expect(result.telegramHtml).toContain('<b>Déveilleur daily report — 2026-05-13</b>');
+      expect(result.telegramHtml).not.toContain('# Trending tools');
+      await expect(fs.readFile(telegramPath, 'utf8')).resolves.toContain('<b>GitHub</b>');
+    } finally {
+      await fs.rm(markdownPath, { force: true });
+      await fs.rm(telegramPath, { force: true });
+    }
+  });
 });

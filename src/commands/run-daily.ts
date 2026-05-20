@@ -5,7 +5,7 @@ import { createDatabase } from '../db/database.js';
 import { migrate } from '../db/migrate.js';
 import { upsertEntry } from '../services/catalog.js';
 import { recordDailyMetric } from '../services/metrics.js';
-import { renderDailyReport, selectReportData } from '../services/reporting.js';
+import { renderDailyReport, renderTelegramReport, selectReportData } from '../services/reporting.js';
 
 export type RunDailyGithubItem = {
   source: 'GH';
@@ -31,10 +31,13 @@ export type RunDailyHomebrewItem = {
   metricValue: number;
 };
 
+export type RunDailyOutputFormat = 'markdown' | 'telegram-html';
+
 export async function runDaily(input: {
   runDate: string;
   databasePath: string;
   reportsDir: string;
+  outputFormats?: RunDailyOutputFormat[];
   githubItems: RunDailyGithubItem[];
   homebrewItems: RunDailyHomebrewItem[];
 }) {
@@ -72,10 +75,20 @@ export async function runDaily(input: {
 
     const reportData = await selectReportData(db, input.runDate);
     const markdown = renderDailyReport(reportData);
+    const outputFormats = input.outputFormats ?? ['markdown'];
+    const wantsTelegramHtml = outputFormats.includes('telegram-html');
 
     await fs.mkdir(input.reportsDir, { recursive: true });
     const outputPath = path.join(input.reportsDir, `${input.runDate}.md`);
     await fs.writeFile(outputPath, markdown, 'utf8');
+
+    let telegramHtml: string | undefined;
+    let telegramHtmlPath: string | undefined;
+    if (wantsTelegramHtml) {
+      telegramHtml = renderTelegramReport(reportData, input.runDate);
+      telegramHtmlPath = path.join(input.reportsDir, `${input.runDate}.telegram.html`);
+      await fs.writeFile(telegramHtmlPath, telegramHtml, 'utf8');
+    }
 
     await db
       .insertInto('run_reports')
@@ -91,7 +104,14 @@ export async function runDaily(input: {
       )
       .execute();
 
-    return { outputPath, markdown, json: reportData, reportRecorded: true };
+    return {
+      outputPath,
+      markdown,
+      json: reportData,
+      reportRecorded: true,
+      telegramHtmlPath,
+      telegramHtml
+    };
   } finally {
     await db.destroy();
   }
