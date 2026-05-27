@@ -5,6 +5,7 @@ import {
   brewKind,
   brewPrefix,
   renderDailyReport,
+  renderTelegramReport,
   type GithubEntry,
   type GithubRiserEntry,
   type HomebrewEntry,
@@ -267,5 +268,40 @@ describe('renderDailyReport', () => {
     );
     expect(markdown).not.toContain('- *');
     expect(markdown).not.toContain('Unknown');
+  });
+
+  it('renders Telegram Bot API HTML with escaped text and links', () => {
+    const report = emptyReport();
+    report.github.newcomers = [
+      {
+        name: 'a < b & c',
+        url: 'https://github.com/org/tool?x=1&y=2',
+        stars: 123,
+        language: 'TypeScript & HTML',
+        description: 'Use <script> safely & ship reports'
+      }
+    ];
+    report.homebrew.newcomers = [
+      {
+        name: 'raycast',
+        url: 'https://www.raycast.com/',
+        installs: 15500,
+        description: 'Control tools with <shortcuts> & snippets',
+        kind: 'cask'
+      }
+    ];
+
+    const html = renderTelegramReport(report, '2026-05-20');
+
+    expect(html).toContain('<b>Déveilleur daily report — 2026-05-20</b>');
+    expect(html).toContain('<b>GitHub</b>');
+    expect(html).toContain(
+      '<a href="https://github.com/org/tool?x=1&amp;y=2"><b>a &lt; b &amp; c</b></a> - 123 ⭐ · <i>TypeScript &amp; HTML</i>'
+    );
+    expect(html).toContain('Use &lt;script&gt; safely &amp; ship reports');
+    expect(html).toContain('<code>brew install --cask raycast</code>');
+    expect(html).not.toContain('##');
+    expect(html).not.toContain('[**');
+    expect(html).not.toContain('`brew');
   });
 });

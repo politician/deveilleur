@@ -71,6 +71,19 @@ function formatName(name: string, url: string | null): string {
   return url ? `[**${name}**](${url})` : `**${name}**`;
 }
 
+function escapeTelegramHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatTelegramName(name: string, url: string | null): string {
+  const escapedName = `<b>${escapeTelegramHtml(name)}</b>`;
+  return url ? `<a href="${escapeTelegramHtml(url)}">${escapedName}</a>` : escapedName;
+}
+
 function formatChange(
   change: number | null | undefined,
   direction: 'up' | 'down'
@@ -133,6 +146,83 @@ export function renderDailyReport(report: ReportJson): string {
     if (entry.description) lines.push(entry.description);
     lines.push(`\`${brewCommand('uninstall', entry.kind, entry.name)}\``);
     lines.push('');
+  }
+
+  return lines.join('\n').trimEnd() + '\n';
+}
+
+function formatTelegramChange(
+  change: number | null | undefined,
+  direction: 'up' | 'down'
+): string {
+  if (change == null) return '';
+  const icon = direction === 'up' ? '📈' : '📉';
+  const normalized = direction === 'up' ? Math.abs(change) : -Math.abs(change);
+  const sign = normalized > 0 ? '+' : '';
+  return `<b>${sign}${normalized}%</b> ${icon}`;
+}
+
+function pushTelegramGithubEntry(
+  lines: string[],
+  entry: GithubEntry | GithubRiserEntry,
+  change?: string
+): void {
+  const lang = entry.language ? ` · <i>${escapeTelegramHtml(entry.language)}</i>` : '';
+  const prefix = change ? `${change} ` : '';
+  lines.push(
+    `${prefix}${formatTelegramName(entry.name, entry.url)} - ${entry.stars} ⭐${lang}`
+  );
+  if (entry.description) lines.push(escapeTelegramHtml(entry.description));
+  lines.push('');
+}
+
+function pushTelegramHomebrewEntry(
+  lines: string[],
+  entry: HomebrewEntry | HomebrewRiserEntry | HomebrewLoserEntry,
+  verb: 'install' | 'uninstall',
+  change?: string
+): void {
+  const prefix = change ? `${change} ` : '';
+  lines.push(
+    `${prefix}${brewPrefix(entry.kind)} ${formatTelegramName(entry.name, entry.url)} - ${entry.installs} 📥`
+  );
+  if (entry.description) lines.push(escapeTelegramHtml(entry.description));
+  lines.push(`<code>${escapeTelegramHtml(brewCommand(verb, entry.kind, entry.name))}</code>`);
+  lines.push('');
+}
+
+export function renderTelegramReport(report: ReportJson, runDate: string): string {
+  const lines = [
+    `<b>Déveilleur daily report — ${escapeTelegramHtml(runDate)}</b>`,
+    '',
+    '<b>GitHub</b>',
+    '',
+    '<b>Newcomers</b>',
+    ''
+  ];
+
+  for (const entry of report.github.newcomers) {
+    pushTelegramGithubEntry(lines, entry);
+  }
+
+  lines.push('<b>Risers</b>', '');
+  for (const entry of report.github.risers) {
+    pushTelegramGithubEntry(lines, entry, formatTelegramChange(entry.changePercent, 'up'));
+  }
+
+  lines.push('<b>Homebrew (30 days)</b>', '', '<b>Newcomers</b>', '');
+  for (const entry of report.homebrew.newcomers) {
+    pushTelegramHomebrewEntry(lines, entry, 'install');
+  }
+
+  lines.push('<b>Risers</b>', '');
+  for (const entry of report.homebrew.risers) {
+    pushTelegramHomebrewEntry(lines, entry, 'install', formatTelegramChange(entry.changePercent, 'up'));
+  }
+
+  lines.push('<b>Losers</b>', '');
+  for (const entry of report.homebrew.losers) {
+    pushTelegramHomebrewEntry(lines, entry, 'uninstall', formatTelegramChange(entry.changePercent, 'down'));
   }
 
   return lines.join('\n').trimEnd() + '\n';

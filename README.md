@@ -35,9 +35,15 @@ The SQLite database lives at `data/tool-discovery.sqlite` and is created on firs
 
 | Script              | What it does                                                  |
 | ------------------- | ------------------------------------------------------------- |
-| `npm run run-daily` | Collect sources, persist metrics, and write the day's report. |
+| `npm run run-daily` | Collect sources, persist metrics, and write the day's Markdown report. |
 | `npm run build`     | Type-check and emit JS via `tsc`.                             |
 | `npm test`          | Run the Vitest suite.                                         |
+
+Pass `--telegram-html` to also write a Telegram Bot API `parse_mode=HTML` companion file at `reports/YYYY-MM-DD.telegram.html`:
+
+```bash
+npm run run-daily -- --telegram-html
+```
 
 Re-running on the same date is idempotent: the report file is overwritten and the `run_reports` row is updated in place.
 
@@ -79,7 +85,7 @@ Three layers, one entry point:
 
 - **Collectors** ([src/collectors/](src/collectors/)) fetch and parse external data. They return plain typed objects and know nothing about storage.
 - **Services** ([src/services/](src/services/)) own all DB access: `catalog` upserts identities, `metrics` writes one row per entry per day and computes `live_change` / `alltime_change`, `reporting` queries history and renders Markdown via a `ReportJson` intermediate.
-- **Command** ([src/commands/run-daily.ts](src/commands/run-daily.ts)) is the orchestrator wired up by [src/cli.ts](src/cli.ts).
+- **Command** ([src/commands/run-daily.ts](src/commands/run-daily.ts)) is the orchestrator wired up by [src/cli.ts](src/cli.ts). It always writes Markdown and can optionally render a Telegram Bot API HTML companion with `--telegram-html`.
 
 For the full rationale (data model, change-rate semantics, dependency handling, migration path to MariaDB), see the design spec: [docs/superpowers/specs/2026-05-13-tool-discovery-agent-design.md](docs/superpowers/specs/2026-05-13-tool-discovery-agent-design.md).
 
